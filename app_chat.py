@@ -13,12 +13,19 @@ if "messages" in q:
     for item in q["messages"]:
         new1 = urllib.parse.unquote(item)
         new_messages.append(new1)
+
+seen = {}
+
 for m in new_messages:    
     st.write("m", m )
     #chk = st.checkbox(f"include {text}",key=str("_i_"+str(i)))
     i = str(id(m))
-    chk = st.checkbox(f"approve {m}",key=str("_a_"+str(i)),value=True)
-    text = st.text_input("approve", key=str("_u_"+str(i)),value=m)
+    key=str("_a_"+str(i))
+
+    if key not in seen:
+        chk = st.checkbox(f"approve {m}",key=str("_a_"+str(i)),value=True)
+        text = st.text_input("approve", key=str("_u_"+str(i)),value=m)
+        seen[key]=1
 
     # number_input("Include" +m,
     #              min_value=0, max_value=10, value=1,
@@ -53,26 +60,17 @@ imports = st.button(f"Approve selected")
 if imports:
     messages= []
     st.write("going to import")
-    for x in st.session_state:
-        v = st.session_state[x]
-        if x.startswith("_a_"):
-            value_name = "_u_"+x[3:]
-            if value_name in st.session_state:
-                v2 = st.session_state[value_name]
-                if v == True:
-                    #messages.append(dict(value=v2) )
-                    new_message_packet = {
-                        "src":"import",
-                        "nickname": nickname,
-                        "text": v2,
-                    }
-                    with server_state_lock["chat_messages"]:
-                        server_state["chat_messages"] = server_state["chat_messages"] + [
-                            new_message_packet
-                        ]
+    with server_state_lock["chat_messages"]:
+        for x in st.session_state:
+            v = st.session_state[x]
+            if x.startswith("_a_"):
+                value_name = "_u_"+x[3:]
+                if value_name in st.session_state:
+                    v2 = st.session_state[value_name]
+                    if v == True:
+                        new_message_packet = { "src":"import",  "nickname": nickname, "text": v2}
+                        server_state["chat_messages"] = server_state["chat_messages"] + [new_message_packet]
                         st.write("added",new_message_packet)
-
-
 
 def on_message_input():
     new_message_text = st.session_state["message_input"]
@@ -123,7 +121,7 @@ for i,message in enumerate(server_state["chat_messages"]):
 
     if "text" in message:
         text = message["text"]
-        if text.startswith("https://"):
+        if text.startswith("https://") or text.startswith("http://"):
             frame = components.iframe(text,
                                       #key=text
                                   #, width=500, height=400
@@ -149,7 +147,7 @@ if share:
 
                 if v == True:
                     #st.write("DEBUGA",x,value_name, v2, v)
-                    messages.append(dict(value=v2) )
+                    messages.append(v2)
                     #{ "DEBUG1" :{ x : v2    }}
                     
             else:
@@ -161,6 +159,7 @@ if share:
             #st.write("DEBUG4",x,v)
             pass
     q.update(dict(messages=messages))
+    q.update(dict(nickname=nickname))
     encoded_query = urllib.parse.urlencode(q, doseq=True)
     st.markdown(f"* share [input_link {encoded_query}](/?{encoded_query})")
 
