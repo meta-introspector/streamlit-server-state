@@ -2,13 +2,26 @@ import streamlit as st
 import streamlit.components.v1 as components
 from streamlit_server_state import server_state, server_state_lock
 import urllib.parse        
-    
-nickname = st.text_input("Nick name", key="nickname")
 
+if 'nickkey' not in st.session_state:
+    q= st.experimental_get_query_params()
+    if "nickname" in q:
+        nickname = q["nickname"][0]
+    else:
+        nickname = st.text_input("Nick name", key="nickname")
+        
+    if nickname:
+        st.session_state['nickkey'] = nickname
+
+def get_nick_name():
+    if 'nickkey' in st.session_state:
+        return st.session_state['nickkey']
+    else:
+        st.stop()
+
+    
+new_messages = []
 q= st.experimental_get_query_params()
-if "nickname" in q:
-    nickname = q["nickname"][0]
-new_messages = []                
 if "messages" in q:
     for item in q["messages"]:
         new1 = urllib.parse.unquote(item)
@@ -37,8 +50,6 @@ for m in new_messages:
     #              )
 
         
-if not nickname:
-    st.stop()
 
 def on_clear():
     st.write("clearing")
@@ -50,13 +61,13 @@ def on_clear():
             st.code(da)        
         server_state["chat_messages"]=[]
     
-clear_args = st.button("clear args")
+clear_args = st.button("clear url args")
 if clear_args:
     st.experimental_set_query_params()
 
-st.button("clear",on_click=on_clear)
+st.button("clear messages for all users",on_click=on_clear)
 
-imports = st.button(f"Approve selected")
+imports = st.button(f"Approve selected messages (if any)")
 if imports:
     messages= []
     st.write("going to import")
@@ -68,7 +79,7 @@ if imports:
                 if value_name in st.session_state:
                     v2 = st.session_state[value_name]
                     if v == True:
-                        new_message_packet = { "src":"import",  "nickname": nickname, "text": v2}
+                        new_message_packet = { "src":"import",  "nickname": get_nick_name(), "text": v2}
                         server_state["chat_messages"] = server_state["chat_messages"] + [new_message_packet]
                         st.write("added",new_message_packet)
 
@@ -79,7 +90,7 @@ def on_message_input():
 
     new_message_packet = {
         "src":"input",
-        "nickname": nickname,
+        "nickname": get_nick_name(),
         "text": new_message_text,
     }
     
@@ -109,7 +120,8 @@ with server_state_lock["chat_messages"]:
                 urls.append( {
                     "src":"url",
                     "field":x,
-                    "nickname": nickname, "text": k})
+                    "nickname": get_nick_name(),
+                    "text": k})
     server_state["chat_messages"].extend(urls)           
 
 st.text_input("Message", key="message_input", on_change=on_message_input)
@@ -122,14 +134,22 @@ for i,message in enumerate(server_state["chat_messages"]):
     if "text" in message:
         text = message["text"]
         if text.startswith("https://") or text.startswith("http://"):
+            st.divider()
             frame = components.iframe(text,
-                                      #key=text
-                                  #, width=500, height=400
+                                      width=st.number_input(
+                                          "width",
+                                          key="width"+str(id(text)),
+                                          min_value=200, value=700),
+                                      height=st.number_input(
+                                          "height",
+                                          key="height"+str(id(text)),
+                                          min_value=200, value=2000)
                                       )
 
         i = str(id(text))
         chk = st.checkbox(f"include {text}",key=str("_i_"+str(i)))
         text = st.text_input("include", key=str("_t_"+str(i)),value=text)
+        st.divider()
     # now make a share link
 share = st.button(f"share selected")
 if share:
@@ -158,8 +178,9 @@ if share:
         else:
             #st.write("DEBUG4",x,v)
             pass
+    q= st.experimental_get_query_params()
     q.update(dict(messages=messages))
-    q.update(dict(nickname=nickname))
+    q.update(dict(nickname=get_nick_name()))
     encoded_query = urllib.parse.urlencode(q, doseq=True)
     st.markdown(f"* share [input_link {encoded_query}](/?{encoded_query})")
 
