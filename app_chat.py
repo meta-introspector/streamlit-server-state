@@ -149,6 +149,7 @@ for i,message in enumerate(server_state["chat_messages"]):
         chk = st.checkbox(f"include {text}",key=str("_i_"+str(i)))
         text = st.text_input("include", key=str("_t_"+str(i)),value=text)
     # now make a share link
+base_url = st.text_input("base_url", key="base-url", value=params.get("base-url",""), help="for the target")
 share = st.button(f"share selected")
 if share:
     messages= []
@@ -180,16 +181,4 @@ if share:
     q.update(dict(messages=messages))
     q.update(dict(nickname=get_nick_name()))
     encoded_query = urllib.parse.urlencode(q, doseq=True)
-    st.markdown(f"* share [input_link {encoded_query}](/?{encoded_query})")
-
- 
-# select_all = st.button("select all")
-# if select_all:
-#     for x in st.session_state:
-#         v = st.session_state[x]
-#         if x.startswith("_i_"):
-#             if v == True:
-#                 pass
-#             else:
-#                 st.session_state[x] = True
-                    
+    st.markdown(f"* share [input_link {encoded_query}]({base_url}/?{encoded_query})")
