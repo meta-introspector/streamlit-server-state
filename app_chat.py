@@ -2,6 +2,10 @@ import streamlit as st
 import streamlit.components.v1 as components
 from streamlit_server_state import server_state, server_state_lock
 import urllib.parse        
+oparams = st.experimental_get_query_params()
+params = {
+    x: oparams[x][0]  for x in oparams
+}
 
 if 'nickkey' not in st.session_state:
     q= st.experimental_get_query_params()
