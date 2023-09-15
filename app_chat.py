@@ -134,7 +134,6 @@ for i,message in enumerate(server_state["chat_messages"]):
     if "text" in message:
         text = message["text"]
         if text.startswith("https://") or text.startswith("http://"):
-            st.divider()
             frame = components.iframe(text,
                                       width=st.number_input(
                                           "width",
@@ -149,7 +148,6 @@ for i,message in enumerate(server_state["chat_messages"]):
         i = str(id(text))
         chk = st.checkbox(f"include {text}",key=str("_i_"+str(i)))
         text = st.text_input("include", key=str("_t_"+str(i)),value=text)
-        st.divider()
     # now make a share link
 share = st.button(f"share selected")
 if share:
